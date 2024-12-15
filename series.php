@@ -28,6 +28,28 @@ function getDatabaseConnection() {
 
 $pdo = getDatabaseConnection();
 
+// Handle DELETE requests für das Löschen
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    header('Content-Type: application/json');
+    
+    try {
+        $id = $_GET['id'] ?? null;
+        if (!$id) {
+            throw new Exception('No ID provided');
+        }
+
+        $stmt = $pdo->prepare("DELETE FROM tv_shows WHERE id = ?");
+        $stmt->execute([$id]);
+
+        echo json_encode(['success' => true]);
+        exit;
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => $e->getMessage()]);
+        exit;
+    }
+}
+
 // Handle POST requests für das Speichern/Aktualisieren
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
@@ -96,7 +118,7 @@ if (!empty($where)) {
     $whereClause = 'WHERE ' . implode(' AND ', $where);
 }
 
-// Hole alle Serien für die Anzeige mit Filtern
+// Hole alle Serien für die Anzeige
 $query = "
     SELECT s.*, st.status_name 
     FROM tv_shows s
@@ -268,13 +290,21 @@ $series = $stmt->fetchAll();
                               id="notes" name="notes" rows="3"></textarea>
                 </div>
 
-                <div class="flex justify-end">
-                    <button type="button" onclick="hideModal()" class="mr-2 px-4 py-2 text-gray-600 hover:text-gray-800">
-                        Abbrechen
+                <div class="flex justify-between">
+                    <button 
+                        type="button" 
+                        onclick="deleteSeries()" 
+                        class="delete-btn invisible px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                        Löschen
                     </button>
-                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                        Speichern
-                    </button>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="hideModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                            Abbrechen
+                        </button>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            Speichern
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -299,6 +329,8 @@ $series = $stmt->fetchAll();
             document.getElementById('modalTitle').textContent = 'Serie hinzufügen';
             document.getElementById('seriesForm').reset();
             document.getElementById('seriesId').value = '';
+            // Verstecke den Löschen-Button
+            document.querySelector('.delete-btn').classList.add('invisible');
             document.getElementById('seriesModal').classList.add('active');
         }
 
@@ -310,11 +342,37 @@ $series = $stmt->fetchAll();
             document.getElementById('status_id').value = series.status_id;
             document.getElementById('available_parts').value = series.available_parts;
             document.getElementById('notes').value = series.notes;
+            // Zeige den Löschen-Button
+            document.querySelector('.delete-btn').classList.remove('invisible');
             document.getElementById('seriesModal').classList.add('active');
         }
 
         function hideModal() {
             document.getElementById('seriesModal').classList.remove('active');
+        }
+
+        async function deleteSeries() {
+            const seriesId = document.getElementById('seriesId').value;
+            if (!seriesId) return;
+
+            if (!confirm('Möchten Sie diese Serie wirklich löschen?')) return;
+
+            try {
+                const response = await fetch(`${window.location.href}?id=${seriesId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    hideModal();
+                    window.location.reload();
+                } else {
+                    alert('Fehler beim Löschen: ' + (result.error || 'Unbekannter Fehler'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Fehler beim Löschen');
+            }
         }
 
         // Form submission handling

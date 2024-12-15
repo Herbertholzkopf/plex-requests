@@ -28,6 +28,28 @@ function getDatabaseConnection() {
 
 $pdo = getDatabaseConnection();
 
+// Handle DELETE requests für das Löschen
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    header('Content-Type: application/json');
+    
+    try {
+        $id = $_GET['id'] ?? null;
+        if (!$id) {
+            throw new Exception('No ID provided');
+        }
+
+        $stmt = $pdo->prepare("DELETE FROM movies WHERE id = ?");
+        $stmt->execute([$id]);
+
+        echo json_encode(['success' => true]);
+        exit;
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => $e->getMessage()]);
+        exit;
+    }
+}
+
 // Handle POST requests für das Speichern/Aktualisieren
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
@@ -70,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Hole alle Status-Typen für das Formular und Filter
+// Hole alle Status-Typen für das Formular
 $stmt = $pdo->query("SELECT * FROM status_types WHERE status_name != 'Parts Missing'");
 $statusTypes = $stmt->fetchAll();
 
@@ -94,7 +116,7 @@ if (!empty($where)) {
     $whereClause = 'WHERE ' . implode(' AND ', $where);
 }
 
-// Hole alle Filme für die Anzeige mit Filtern
+// Hole alle Filme für die Anzeige
 $query = "
     SELECT m.*, st.status_name 
     FROM movies m
@@ -256,13 +278,21 @@ $movies = $stmt->fetchAll();
                               id="notes" name="notes" rows="3"></textarea>
                 </div>
 
-                <div class="flex justify-end">
-                    <button type="button" onclick="hideModal()" class="mr-2 px-4 py-2 text-gray-600 hover:text-gray-800">
-                        Abbrechen
+                <div class="flex justify-between">
+                    <button 
+                        type="button" 
+                        onclick="deleteMovie()" 
+                        class="delete-btn invisible px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                        Löschen
                     </button>
-                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                        Speichern
-                    </button>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="hideModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                            Abbrechen
+                        </button>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            Speichern
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -270,7 +300,6 @@ $movies = $stmt->fetchAll();
 
     <script>
         <?php
-        // PHP-Funktion für Status-Klassen ins JavaScript übertragen
         function getStatusClass($status) {
             $classes = [
                 'Requested' => 'bg-yellow-100 text-yellow-800',
@@ -287,6 +316,8 @@ $movies = $stmt->fetchAll();
             document.getElementById('modalTitle').textContent = 'Film hinzufügen';
             document.getElementById('movieForm').reset();
             document.getElementById('movieId').value = '';
+            // Verstecke den Löschen-Button
+            document.querySelector('.delete-btn').classList.add('invisible');
             document.getElementById('movieModal').classList.add('active');
         }
 
@@ -297,11 +328,37 @@ $movies = $stmt->fetchAll();
             document.getElementById('release_year').value = movie.release_year;
             document.getElementById('status_id').value = movie.status_id;
             document.getElementById('notes').value = movie.notes;
+            // Zeige den Löschen-Button
+            document.querySelector('.delete-btn').classList.remove('invisible');
             document.getElementById('movieModal').classList.add('active');
         }
 
         function hideModal() {
             document.getElementById('movieModal').classList.remove('active');
+        }
+
+        async function deleteMovie() {
+            const movieId = document.getElementById('movieId').value;
+            if (!movieId) return;
+
+            if (!confirm('Möchten Sie diesen Film wirklich löschen?')) return;
+
+            try {
+                const response = await fetch(`${window.location.href}?id=${movieId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    hideModal();
+                    window.location.reload();
+                } else {
+                    alert('Fehler beim Löschen: ' + (result.error || 'Unbekannter Fehler'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Fehler beim Löschen');
+            }
         }
 
         // Form submission handling
