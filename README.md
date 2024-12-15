@@ -4,12 +4,12 @@ chmod +x install.sh
 sudo ./install.sh
 ```
 
-Ändere nach der Installation noch folgende Werte:
+Öffne nach der Installation die Kofiguration von PHP-FPM:
 ```
 sudo nano /etc/php/8.1/fpm/php.ini
 ```
-```
 Ändere folgende Werte:
+```
 max_execution_time = 300
 max_input_time = 300
 memory_limit = 256M
