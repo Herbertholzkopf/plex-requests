@@ -17,5 +17,6 @@ sudo nano /etc/php/8.1/fpm/php.ini
 
 Nutze dann den folgenden Befehl, um PHP-FPM neuzustarten:
 ```
-systemctl restart php8.1-fpm
+systemctl restart php8.3-fpm
 ```
+Falls es eine andere Version (z.B. neue Version) von PHP-FPM ist, kann unter ``/var/run/php/`` mit dem Befehl ``ls`` gesehen werden, welche Version installiert ist
