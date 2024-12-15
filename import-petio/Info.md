@@ -5,7 +5,7 @@ Dies ist ein Skript in Python geschrieben, dass die Requests aus Petio importier
 
 Installiere die benötigten Pakete:
 ```
-pip install pandas mysql-connector-python
+apt install python3-pip python3-pandas python3-mysql.connector -y
 ```
 Lade das Skript über das Web-Interface http://IP/import-petio hoch
 
