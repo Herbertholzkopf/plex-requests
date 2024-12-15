@@ -1,0 +1,6 @@
+{
+    "host": "localhost",
+    "user": "plex_requests_user",
+    "password": "12345678",
+    "database": "plex_requests"
+}
