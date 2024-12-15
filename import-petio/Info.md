@@ -11,5 +11,6 @@ Lade das Skript über das Web-Interface http://IP/import-petio hoch
 
 Führe das Skript mit dem Befehl aus:
 ```
-python import_petio.py
+cd /var/www/plex-requests/import-petio/
+python3 import_petio.py
 ```

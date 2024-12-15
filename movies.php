@@ -70,18 +70,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Hole alle Filme für die Anzeige
-$stmt = $pdo->query("
+// Hole alle Status-Typen für das Formular und Filter
+$stmt = $pdo->query("SELECT * FROM status_types WHERE status_name != 'Parts Missing'");
+$statusTypes = $stmt->fetchAll();
+
+// Erstelle die WHERE-Bedingungen basierend auf den Filtern
+$where = [];
+$params = [];
+
+if (!empty($_GET['search'])) {
+    $where[] = "m.title LIKE ?";
+    $params[] = '%' . $_GET['search'] . '%';
+}
+
+if (!empty($_GET['status_filter'])) {
+    $where[] = "m.status_id = ?";
+    $params[] = $_GET['status_filter'];
+}
+
+// Baue die WHERE-Klausel
+$whereClause = '';
+if (!empty($where)) {
+    $whereClause = 'WHERE ' . implode(' AND ', $where);
+}
+
+// Hole alle Filme für die Anzeige mit Filtern
+$query = "
     SELECT m.*, st.status_name 
     FROM movies m
     JOIN status_types st ON m.status_id = st.id
+    {$whereClause}
     ORDER BY m.title
-");
-$movies = $stmt->fetchAll();
+";
 
-// Hole alle Status-Typen für das Formular
-$stmt = $pdo->query("SELECT * FROM status_types WHERE status_name != 'Parts Missing'");
-$statusTypes = $stmt->fetchAll();
+$stmt = $pdo->prepare($query);
+$stmt->execute($params);
+$movies = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -116,6 +140,41 @@ $statusTypes = $stmt->fetchAll();
             </div>
         </div>
 
+        <!-- Search and Filter -->
+        <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+            <form method="get" class="flex gap-4">
+                <div class="flex-1">
+                    <input 
+                        type="text" 
+                        name="search" 
+                        placeholder="Nach Filmtitel suchen..." 
+                        value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                </div>
+                <div class="w-48">
+                    <select 
+                        name="status_filter" 
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">Alle Status</option>
+                        <?php foreach ($statusTypes as $status): ?>
+                            <option value="<?php echo $status['id']; ?>" <?php echo (isset($_GET['status_filter']) && $_GET['status_filter'] == $status['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($status['status_name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <button type="submit" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                    Suchen
+                </button>
+                <?php if (!empty($_GET['search']) || !empty($_GET['status_filter'])): ?>
+                    <a href="movies.php" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
+                        Zurücksetzen
+                    </a>
+                <?php endif; ?>
+            </form>
+        </div>
 
         <!-- Movies Table -->
         <div class="bg-white rounded-lg shadow-sm overflow-hidden">
