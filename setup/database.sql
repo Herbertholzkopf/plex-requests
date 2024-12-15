@@ -1,5 +1,4 @@
--- Erstelle die Datenbank
-CREATE DATABASE plex_requests DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- Wahl der Datenbank
 USE plex_requests;
 
 -- Tabelle für die Status-Werte (um Konsistenz zu gewährleisten)
