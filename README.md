@@ -1,5 +1,5 @@
 ```
-wget https://raw.githubusercontent.com/Herbertholzkopf/backup-monitor/refs/heads/main/install.sh
+wget https://raw.githubusercontent.com/Herbertholzkopf/plex-requests/refs/heads/main/setup/install.sh
 chmod +x install.sh
 sudo ./install.sh
 ```
