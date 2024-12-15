@@ -33,6 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
     
     try {
+        $params = [
+            'title' => $_POST['title'],
+            'release_year' => $_POST['release_year'],
+            'status_id' => $_POST['status_id'],
+            'notes' => $_POST['notes']
+        ];
+
         if (empty($_POST['id'])) {
             // Neuen Film hinzufügen
             $stmt = $pdo->prepare("
@@ -41,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
         } else {
             // Existierenden Film aktualisieren
+            $params['id'] = $_POST['id'];
             $stmt = $pdo->prepare("
                 UPDATE movies
                 SET title = :title,
@@ -51,13 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
         }
 
-        $stmt->execute([
-            'id' => $_POST['id'] ?? null,
-            'title' => $_POST['title'],
-            'release_year' => $_POST['release_year'],
-            'status_id' => $_POST['status_id'],
-            'notes' => $_POST['notes']
-        ]);
+        $stmt->execute($params);
 
         echo json_encode(['success' => true]);
         exit;
