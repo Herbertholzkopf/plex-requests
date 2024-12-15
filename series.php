@@ -37,23 +37,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'title' => $_POST['title'],
             'release_year' => $_POST['release_year'],
             'status_id' => $_POST['status_id'],
+            'available_parts' => $_POST['available_parts'],
             'notes' => $_POST['notes']
         ];
 
         if (empty($_POST['id'])) {
-            // Neuen Film hinzufügen
+            // Neue Serie hinzufügen
             $stmt = $pdo->prepare("
-                INSERT INTO movies (title, release_year, status_id, notes)
-                VALUES (:title, :release_year, :status_id, :notes)
+                INSERT INTO tv_shows (title, release_year, status_id, available_parts, notes)
+                VALUES (:title, :release_year, :status_id, :available_parts, :notes)
             ");
         } else {
-            // Existierenden Film aktualisieren
+            // Existierende Serie aktualisieren
             $params['id'] = $_POST['id'];
             $stmt = $pdo->prepare("
-                UPDATE movies
+                UPDATE tv_shows
                 SET title = :title,
                     release_year = :release_year,
                     status_id = :status_id,
+                    available_parts = :available_parts,
                     notes = :notes
                 WHERE id = :id
             ");
@@ -70,17 +72,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Hole alle Filme für die Anzeige
+// Hole alle Serien für die Anzeige
 $stmt = $pdo->query("
-    SELECT m.*, st.status_name 
-    FROM movies m
-    JOIN status_types st ON m.status_id = st.id
-    ORDER BY m.title
+    SELECT s.*, st.status_name 
+    FROM tv_shows s
+    JOIN status_types st ON s.status_id = st.id
+    ORDER BY s.title
 ");
-$movies = $stmt->fetchAll();
+$series = $stmt->fetchAll();
 
-// Hole alle Status-Typen für das Formular
-$stmt = $pdo->query("SELECT * FROM status_types WHERE status_name != 'Parts Missing'");
+// Hole alle Status-Typen für das Formular (inkl. 'Parts Missing')
+$stmt = $pdo->query("SELECT * FROM status_types");
 $statusTypes = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -88,7 +90,7 @@ $statusTypes = $stmt->fetchAll();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plex Requests - Filme</title>
+    <title>Plex Requests - Serien</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .modal {
@@ -111,13 +113,12 @@ $statusTypes = $stmt->fetchAll();
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold text-gray-800">Plex Requests</h1>
             <div class="bg-white rounded-lg shadow-sm">
-                <a href="movies.php" class="px-4 py-2 bg-blue-500 text-white rounded-l-lg">Filme</a>
-                <a href="series.php" class="px-4 py-2 hover:bg-gray-100 rounded-r-lg">Serien</a>
+                <a href="movies.php" class="px-4 py-2 hover:bg-gray-100 rounded-l-lg">Filme</a>
+                <a href="series.php" class="px-4 py-2 bg-blue-500 text-white rounded-r-lg">Serien</a>
             </div>
         </div>
 
-
-        <!-- Movies Table -->
+        <!-- Series Table -->
         <div class="bg-white rounded-lg shadow-sm overflow-hidden">
             <table class="w-full">
                 <thead class="bg-gray-50">
@@ -125,20 +126,22 @@ $statusTypes = $stmt->fetchAll();
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jahr</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vorhanden</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notizen</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
-                    <?php foreach ($movies as $movie): ?>
-                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="showEditModal(<?php echo htmlspecialchars(json_encode($movie)); ?>)">
-                        <td class="px-6 py-4"><?php echo htmlspecialchars($movie['title']); ?></td>
-                        <td class="px-6 py-4"><?php echo htmlspecialchars($movie['release_year']); ?></td>
+                    <?php foreach ($series as $show): ?>
+                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="showEditModal(<?php echo htmlspecialchars(json_encode($show)); ?>)">
+                        <td class="px-6 py-4"><?php echo htmlspecialchars($show['title']); ?></td>
+                        <td class="px-6 py-4"><?php echo htmlspecialchars($show['release_year']); ?></td>
                         <td class="px-6 py-4">
-                            <span class="px-2 py-1 text-sm rounded-full <?php echo getStatusClass($movie['status_name']); ?>">
-                                <?php echo htmlspecialchars($movie['status_name']); ?>
+                            <span class="px-2 py-1 text-sm rounded-full <?php echo getStatusClass($show['status_name']); ?>">
+                                <?php echo htmlspecialchars($show['status_name']); ?>
                             </span>
                         </td>
-                        <td class="px-6 py-4"><?php echo htmlspecialchars($movie['notes']); ?></td>
+                        <td class="px-6 py-4"><?php echo htmlspecialchars($show['available_parts']); ?></td>
+                        <td class="px-6 py-4"><?php echo htmlspecialchars($show['notes']); ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -151,19 +154,19 @@ $statusTypes = $stmt->fetchAll();
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
-        <span>Film hinzufügen</span>
+        <span>Serie hinzufügen</span>
     </button>
 
     <!-- Add/Edit Modal -->
-    <div id="movieModal" class="modal">
+    <div id="seriesModal" class="modal">
         <div class="modal-content bg-white w-full max-w-lg mx-auto mt-20 rounded-lg shadow-lg p-6">
-            <h2 id="modalTitle" class="text-2xl font-bold mb-4">Film hinzufügen</h2>
-            <form id="movieForm" method="post">
-                <input type="hidden" id="movieId" name="id">
+            <h2 id="modalTitle" class="text-2xl font-bold mb-4">Serie hinzufügen</h2>
+            <form id="seriesForm" method="post">
+                <input type="hidden" id="seriesId" name="id">
                 
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="title">
-                        Filmtitel
+                        Serientitel
                     </label>
                     <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
                            id="title" name="title" type="text" required>
@@ -190,6 +193,14 @@ $statusTypes = $stmt->fetchAll();
                 </div>
 
                 <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="available_parts">
+                        Vorhandene Teile
+                    </label>
+                    <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                              id="available_parts" name="available_parts" rows="2"></textarea>
+                </div>
+
+                <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="notes">
                         Notizen
                     </label>
@@ -211,42 +222,43 @@ $statusTypes = $stmt->fetchAll();
 
     <script>
         <?php
-        // PHP-Funktion für Status-Klassen ins JavaScript übertragen
         function getStatusClass($status) {
             $classes = [
                 'Requested' => 'bg-yellow-100 text-yellow-800',
                 'Downloading' => 'bg-blue-100 text-blue-800',
                 'Added' => 'bg-green-100 text-green-800',
                 'Errors' => 'bg-red-100 text-red-800',
-                'Not Found' => 'bg-gray-100 text-gray-800'
+                'Not Found' => 'bg-gray-100 text-gray-800',
+                'Parts Missing' => 'bg-orange-100 text-orange-800'
             ];
             return $classes[$status] ?? 'bg-gray-100 text-gray-800';
         }
         ?>
 
         function showAddModal() {
-            document.getElementById('modalTitle').textContent = 'Film hinzufügen';
-            document.getElementById('movieForm').reset();
-            document.getElementById('movieId').value = '';
-            document.getElementById('movieModal').classList.add('active');
+            document.getElementById('modalTitle').textContent = 'Serie hinzufügen';
+            document.getElementById('seriesForm').reset();
+            document.getElementById('seriesId').value = '';
+            document.getElementById('seriesModal').classList.add('active');
         }
 
-        function showEditModal(movie) {
-            document.getElementById('modalTitle').textContent = 'Film bearbeiten';
-            document.getElementById('movieId').value = movie.id;
-            document.getElementById('title').value = movie.title;
-            document.getElementById('release_year').value = movie.release_year;
-            document.getElementById('status_id').value = movie.status_id;
-            document.getElementById('notes').value = movie.notes;
-            document.getElementById('movieModal').classList.add('active');
+        function showEditModal(series) {
+            document.getElementById('modalTitle').textContent = 'Serie bearbeiten';
+            document.getElementById('seriesId').value = series.id;
+            document.getElementById('title').value = series.title;
+            document.getElementById('release_year').value = series.release_year;
+            document.getElementById('status_id').value = series.status_id;
+            document.getElementById('available_parts').value = series.available_parts;
+            document.getElementById('notes').value = series.notes;
+            document.getElementById('seriesModal').classList.add('active');
         }
 
         function hideModal() {
-            document.getElementById('movieModal').classList.remove('active');
+            document.getElementById('seriesModal').classList.remove('active');
         }
 
         // Form submission handling
-        document.getElementById('movieForm').addEventListener('submit', async function(event) {
+        document.getElementById('seriesForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             const formData = new FormData(event.target);
             
@@ -270,7 +282,7 @@ $statusTypes = $stmt->fetchAll();
         });
 
         // Close modal when clicking outside
-        document.getElementById('movieModal').addEventListener('click', function(event) {
+        document.getElementById('seriesModal').addEventListener('click', function(event) {
             if (event.target === this) {
                 hideModal();
             }
