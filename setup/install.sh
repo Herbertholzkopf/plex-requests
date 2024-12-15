@@ -76,10 +76,6 @@ then
     exit 1
 fi
 
-# Datenbank konfigurieren
-echo -e "${YELLOW}Erstelle Tabellen und Test-Daten...${NC}"
-mysql --user=plex_requests_user --password="${dbpass}" < /var/www/plex-requests/setup/database.sql
-
 
 # Verzeichnis für das Projekt erstellen
 echo -e "${YELLOW}Erstelle Projekt-Verzeichnis...${NC}"
@@ -93,6 +89,11 @@ else
     echo -e "${RED}Fehler beim Klonen des Repositories${NC}"
     exit 1
 fi
+
+
+# Datenbank konfigurieren
+echo -e "${YELLOW}Erstelle Tabellen und Test-Daten...${NC}"
+mysql --user=plex_requests_user --password="${dbpass}" < /var/www/plex-requests/setup/database.sql
 
 
 # Rechte des Verzeichnis anpassen
