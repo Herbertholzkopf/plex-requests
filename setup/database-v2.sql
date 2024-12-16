@@ -27,6 +27,7 @@ INSERT INTO providers (provider_name) VALUES
     ('Apple TV+'),
     ('Joyn'),
     ('Weitere');
+    ('Kino');
 
 -- Füge die Standard-Collections ein
 INSERT INTO collections (collection_name) VALUES

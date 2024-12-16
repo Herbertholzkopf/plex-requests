@@ -59,8 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'title' => $_POST['title'],
             'release_year' => $_POST['release_year'],
             'status_id' => $_POST['status_id'],
-            'provider_id' => $_POST['provider_id'],
-            'collection_id' => $_POST['collection_id'],
+            'provider_id' => $_POST['provider_id'] ?: null,
+            'collection_id' => $_POST['collection_id'] ?: null,
             'available_parts' => $_POST['available_parts'],
             'notes' => $_POST['notes']
         ];
@@ -124,6 +124,11 @@ if (!empty($_GET['status_filter'])) {
     $params[] = $_GET['status_filter'];
 }
 
+if (!empty($_GET['provider_filter'])) {
+    $where[] = "s.provider_id = ?";
+    $params[] = $_GET['provider_filter'];
+}
+
 // Baue die WHERE-Klausel
 $whereClause = '';
 if (!empty($where)) {
@@ -132,9 +137,10 @@ if (!empty($where)) {
 
 // Hole alle Serien für die Anzeige
 $query = "
-    SELECT s.*, st.status_name 
+    SELECT s.*, st.status_name, p.provider_name
     FROM tv_shows s
     JOIN status_types st ON s.status_id = st.id
+    LEFT JOIN providers p ON s.provider_id = p.id
     {$whereClause}
     ORDER BY s.title
 ";
@@ -201,10 +207,23 @@ $series = $stmt->fetchAll();
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <div class="w-48">
+                    <select 
+                        name="provider_filter" 
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">Alle Anbieter</option>
+                        <?php foreach ($providers as $provider): ?>
+                            <option value="<?php echo $provider['id']; ?>" <?php echo (isset($_GET['provider_filter']) && $_GET['provider_filter'] == $provider['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($provider['provider_name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <button type="submit" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
                     Suchen
                 </button>
-                <?php if (!empty($_GET['search']) || !empty($_GET['status_filter'])): ?>
+                <?php if (!empty($_GET['search']) || !empty($_GET['status_filter']) || !empty($_GET['provider_filter'])): ?>
                     <a href="series.php" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
                         Zurücksetzen
                     </a>
@@ -213,6 +232,7 @@ $series = $stmt->fetchAll();
         </div>
 
         <!-- Series Table -->
+
         <div class="bg-white rounded-lg shadow-sm overflow-hidden">
             <table class="w-full">
                 <thead class="bg-gray-50">
@@ -220,6 +240,7 @@ $series = $stmt->fetchAll();
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jahr</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Anbieter</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vorhanden</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notizen</th>
                     </tr>
@@ -234,6 +255,7 @@ $series = $stmt->fetchAll();
                                 <?php echo htmlspecialchars($show['status_name']); ?>
                             </span>
                         </td>
+                        <td class="px-6 py-4"><?php echo htmlspecialchars($show['provider_name'] ?? '-'); ?></td>
                         <td class="px-6 py-4"><?php echo htmlspecialchars($show['available_parts']); ?></td>
                         <td class="px-6 py-4"><?php echo htmlspecialchars($show['notes']); ?></td>
                     </tr>
@@ -288,7 +310,7 @@ $series = $stmt->fetchAll();
 
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="provider_id">
-                    Streaming-Anbieter
+                        Anbieter
                     </label>
                     <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
                             id="provider_id" name="provider_id">
@@ -301,7 +323,7 @@ $series = $stmt->fetchAll();
 
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="collection_id">
-                        Plex-Sammlung
+                        Collection
                     </label>
                     <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
                             id="collection_id" name="collection_id">
@@ -357,7 +379,8 @@ $series = $stmt->fetchAll();
                 'Added' => 'bg-green-100 text-green-800',
                 'Errors' => 'bg-red-100 text-red-800',
                 'Not Found' => 'bg-gray-100 text-gray-800',
-                'Parts Missing' => 'bg-orange-100 text-orange-800'
+                'Parts Missing' => 'bg-orange-100 text-orange-800',
+                'Upgrade' => 'bg-purple-100 text-purple-800'
             ];
             return $classes[$status] ?? 'bg-gray-100 text-gray-800';
         }
@@ -378,8 +401,8 @@ $series = $stmt->fetchAll();
             document.getElementById('title').value = series.title;
             document.getElementById('release_year').value = series.release_year;
             document.getElementById('status_id').value = series.status_id;
-            document.getElementById('provider_id').value = series.provider_id;
-            document.getElementById('collection_id').value = series.collection_id;
+            document.getElementById('provider_id').value = series.provider_id || '';
+            document.getElementById('collection_id').value = series.collection_id || '';
             document.getElementById('available_parts').value = series.available_parts;
             document.getElementById('notes').value = series.notes;
             // Zeige den Löschen-Button

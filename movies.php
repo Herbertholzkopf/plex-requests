@@ -59,8 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'title' => $_POST['title'],
             'release_year' => $_POST['release_year'],
             'status_id' => $_POST['status_id'],
-            'provider_id' => $_POST['provider_id'],
-            'collection_id' => $_POST['collection_id'],
+            'provider_id' => $_POST['provider_id'] ?: null,
+            'collection_id' => $_POST['collection_id'] ?: null,
             'notes' => $_POST['notes']
         ];
 
@@ -122,6 +122,11 @@ if (!empty($_GET['status_filter'])) {
     $params[] = $_GET['status_filter'];
 }
 
+if (!empty($_GET['provider_filter'])) {
+    $where[] = "m.provider_id = ?";
+    $params[] = $_GET['provider_filter'];
+}
+
 // Baue die WHERE-Klausel
 $whereClause = '';
 if (!empty($where)) {
@@ -130,9 +135,10 @@ if (!empty($where)) {
 
 // Hole alle Filme für die Anzeige
 $query = "
-    SELECT m.*, st.status_name 
+    SELECT m.*, st.status_name, p.provider_name
     FROM movies m
     JOIN status_types st ON m.status_id = st.id
+    LEFT JOIN providers p ON m.provider_id = p.id
     {$whereClause}
     ORDER BY m.title
 ";
@@ -199,10 +205,23 @@ $movies = $stmt->fetchAll();
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <div class="w-48">
+                    <select 
+                        name="provider_filter" 
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">Alle Anbieter</option>
+                        <?php foreach ($providers as $provider): ?>
+                            <option value="<?php echo $provider['id']; ?>" <?php echo (isset($_GET['provider_filter']) && $_GET['provider_filter'] == $provider['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($provider['provider_name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <button type="submit" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
                     Suchen
                 </button>
-                <?php if (!empty($_GET['search']) || !empty($_GET['status_filter'])): ?>
+                <?php if (!empty($_GET['search']) || !empty($_GET['status_filter']) || !empty($_GET['provider_filter'])): ?>
                     <a href="movies.php" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
                         Zurücksetzen
                     </a>
@@ -218,6 +237,7 @@ $movies = $stmt->fetchAll();
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jahr</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Anbieter</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notizen</th>
                     </tr>
                 </thead>
@@ -231,6 +251,7 @@ $movies = $stmt->fetchAll();
                                 <?php echo htmlspecialchars($movie['status_name']); ?>
                             </span>
                         </td>
+                        <td class="px-6 py-4"><?php echo htmlspecialchars($movie['provider_name'] ?? '-'); ?></td>
                         <td class="px-6 py-4"><?php echo htmlspecialchars($movie['notes']); ?></td>
                     </tr>
                     <?php endforeach; ?>
@@ -344,7 +365,8 @@ $movies = $stmt->fetchAll();
                 'Downloading' => 'bg-blue-100 text-blue-800',
                 'Added' => 'bg-green-100 text-green-800',
                 'Errors' => 'bg-red-100 text-red-800',
-                'Not Found' => 'bg-gray-100 text-gray-800'
+                'Not Found' => 'bg-gray-100 text-gray-800',
+                'Upgrade' => 'bg-purple-100 text-purple-800'
             ];
             return $classes[$status] ?? 'bg-gray-100 text-gray-800';
         }

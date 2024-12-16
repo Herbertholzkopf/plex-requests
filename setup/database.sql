@@ -42,6 +42,7 @@ INSERT INTO status_types (status_name, description) VALUES
     ('Errors', 'Fehler beim Herunterladen/Hinzufügen'),
     ('Not Found', 'Konnte nicht gefunden werden'),
     ('Parts Missing', 'Nur für Serien: Einige Teile fehlen noch');
+    ('Upgrade', 'Ein Upgrade ist verfügbar/notwendig');
 
 -- Indexe für bessere Performance
 CREATE INDEX idx_movies_title ON movies(title);
