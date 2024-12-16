@@ -94,7 +94,7 @@ fi
 # Datenbank konfigurieren
 echo -e "${YELLOW}Erstelle Tabellen und Test-Daten...${NC}"
 mysql --user=plex_requests_user --password="${dbpass}" < /var/www/plex-requests/setup/database.sql
-
+mysql --user=plex_requests_user --password="${dbpass}" < /var/www/plex-requests/setup/database-v2.sql
 
 # Rechte des Verzeichnis anpassen
 chown -R www-data:www-data /var/www/plex-requests

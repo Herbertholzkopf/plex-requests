@@ -59,6 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'title' => $_POST['title'],
             'release_year' => $_POST['release_year'],
             'status_id' => $_POST['status_id'],
+            'provider_id' => $_POST['provider_id'],
+            'collection_id' => $_POST['collection_id'],
             'available_parts' => $_POST['available_parts'],
             'notes' => $_POST['notes']
         ];
@@ -66,8 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($_POST['id'])) {
             // Neue Serie hinzufügen
             $stmt = $pdo->prepare("
-                INSERT INTO tv_shows (title, release_year, status_id, available_parts, notes)
-                VALUES (:title, :release_year, :status_id, :available_parts, :notes)
+                INSERT INTO tv_shows (title, release_year, status_id, provider_id, collection_id, available_parts, notes)
+                VALUES (:title, :release_year, :status_id, :provider_id, :collection_id, :available_parts, :notes)
             ");
         } else {
             // Existierende Serie aktualisieren
@@ -77,6 +79,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 SET title = :title,
                     release_year = :release_year,
                     status_id = :status_id,
+                    provider_id = :provider_id,
+                    collection_id = :collection_id,
                     available_parts = :available_parts,
                     notes = :notes
                 WHERE id = :id
@@ -97,6 +101,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Hole alle Status-Typen für das Formular (inkl. 'Parts Missing')
 $stmt = $pdo->query("SELECT * FROM status_types");
 $statusTypes = $stmt->fetchAll();
+
+// Hole alle Provider
+$stmt = $pdo->query("SELECT * FROM providers ORDER BY provider_name");
+$providers = $stmt->fetchAll();
+
+// Hole alle Collections
+$stmt = $pdo->query("SELECT * FROM collections ORDER BY collection_name");
+$collections = $stmt->fetchAll();
 
 // Erstelle die WHERE-Bedingungen basierend auf den Filtern
 $where = [];
@@ -275,6 +287,32 @@ $series = $stmt->fetchAll();
                 </div>
 
                 <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="provider_id">
+                    Streaming-Anbieter
+                    </label>
+                    <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                            id="provider_id" name="provider_id">
+                        <option value="">Bitte wählen...</option>
+                        <?php foreach ($providers as $provider): ?>
+                        <option value="<?php echo $provider['id']; ?>"><?php echo htmlspecialchars($provider['provider_name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="collection_id">
+                        Plex-Sammlung
+                    </label>
+                    <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                            id="collection_id" name="collection_id">
+                        <option value="">Bitte wählen...</option>
+                        <?php foreach ($collections as $collection): ?>
+                        <option value="<?php echo $collection['id']; ?>"><?php echo htmlspecialchars($collection['collection_name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="available_parts">
                         Vorhandene Teile
                     </label>
@@ -340,6 +378,8 @@ $series = $stmt->fetchAll();
             document.getElementById('title').value = series.title;
             document.getElementById('release_year').value = series.release_year;
             document.getElementById('status_id').value = series.status_id;
+            document.getElementById('provider_id').value = series.provider_id;
+            document.getElementById('collection_id').value = series.collection_id;
             document.getElementById('available_parts').value = series.available_parts;
             document.getElementById('notes').value = series.notes;
             // Zeige den Löschen-Button
